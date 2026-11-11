@@ -1,0 +1,92 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ppm_db}
+      POSTGRES_USER: ${POSTGRES_USER:-ppm_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ppm_demo_db_password_change_me}
+    volumes:
+      - ppm_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ppm_user} -d ${POSTGRES_DB:-ppm_db}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [ppm]
+
+  openldap:
+    image: osixia/openldap:1.5.0
+    restart: unless-stopped
+    # --copy-service is mandatory: the image's startup script edits LDIF files in place (sed -i),
+    # which fails on a read-only/bind-mounted file. Custom LDIFs must live in the ldif/custom directory.
+    command: ["--copy-service"]
+    environment:
+      LDAP_ORGANISATION: "Company N (Учебный стенд)"
+      LDAP_DOMAIN: example.org
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD:-ppm_demo_ldap_admin_password}
+      LDAP_TLS: "false"
+    volumes:
+      - ./infra/ldap:/container/service/slapd/assets/config/bootstrap/ldif/custom:ro
+    healthcheck:
+      # Ready only after the custom LDIF was loaded (ou=people exists). Anonymous reads are denied by the image ACL, so bind as admin.
+      test: ["CMD-SHELL", "ldapsearch -x -H ldap://localhost:389 -D cn=admin,dc=example,dc=org -w \"$$LDAP_ADMIN_PASSWORD\" -b ou=people,dc=example,dc=org -s base dn | grep -q '^dn: ou=people'"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    networks: [ppm]
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"
+    networks: [ppm]
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-insecure-demo-key-replace-me}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-0}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+      DB_ENGINE: django.db.backends.postgresql
+      DB_NAME: ${POSTGRES_DB:-ppm_db}
+      DB_USER: ${POSTGRES_USER:-ppm_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ppm_demo_db_password_change_me}
+      DB_HOST: db
+      DB_PORT: 5432
+      LDAP_ENABLED: "1"
+      LDAP_URL: ldap://openldap:389
+      LDAP_DN_TEMPLATE: uid={username},ou=people,dc=example,dc=org
+      EMAIL_HOST: mailpit
+      EMAIL_PORT: 1025
+      DEFAULT_FROM_EMAIL: ppm-demo@example.org
+      TOKEN_TTL_SECONDS: ${TOKEN_TTL_SECONDS:-86400}
+    depends_on:
+      db:
+        condition: service_healthy
+      openldap:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    networks: [ppm]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+      - "8443:443"
+    depends_on: [backend]
+    networks: [ppm]
+
+volumes:
+  ppm_db_data:
+
+networks:
+  ppm:
+    driver: bridge

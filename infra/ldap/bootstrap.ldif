@@ -1,0 +1,67 @@
+dn: ou=people,dc=example,dc=org
+objectClass: organizationalUnit
+ou: people
+
+dn: uid=initiator,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: initiator
+cn: Иван Инициатор
+sn: Инициатор
+mail: initiator@example.org
+userPassword: initiator123
+
+dn: uid=expert1,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: expert1
+cn: Анна Эксперт
+sn: Эксперт
+mail: expert1@example.org
+userPassword: expert12345
+
+dn: uid=expert2,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: expert2
+cn: Олег Эксперт
+sn: Эксперт
+mail: expert2@example.org
+userPassword: expert23456
+
+dn: uid=manager,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: manager
+cn: Мария Менеджер
+sn: Менеджер
+mail: manager@example.org
+userPassword: manager123
+
+dn: uid=committee1,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: committee1
+cn: Сергей Комитет
+sn: Комитет
+mail: committee1@example.org
+userPassword: committee123
+
+dn: uid=committee2,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: committee2
+cn: Елена Комитет
+sn: Комитет
+mail: committee2@example.org
+userPassword: committee234
+
+dn: uid=committee3,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: committee3
+cn: Дмитрий Комитет
+sn: Комитет
+mail: committee3@example.org
+userPassword: committee345
+
+dn: uid=admin,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: admin
+cn: Администратор системы
+sn: Администратор
+mail: admin@example.org
+userPassword: admin12345
